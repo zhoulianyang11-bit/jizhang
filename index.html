@@ -8,8 +8,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="记账">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#e7e5e0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e7e5e0">
+<script>
+/* 页面一开始就定好浅色还是深色，避免打开时闪一下 */
+function applyTheme(t){
+  var dark=t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  var m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=dark?'#111111':'#e7e5e0';
+}
+(function(){var t='auto';try{var s=JSON.parse(localStorage.getItem('jizhang-v1'));if(s&&s.settings&&s.settings.theme)t=s.settings.theme;}catch(e){}applyTheme(t);})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
@@ -25,13 +33,13 @@
   --radius:22px; --radius-s:14px;
   --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#111111; --card:#1e1e1f; --text:#f1efea; --muted:#8b8882; --line:#2f2f30;
+:root{color-scheme:light}
+/* 深色版本：由“我的 › 外观”决定是否启用（跟随系统 / 浅色 / 深色） */
+  :root[data-theme="dark"]{ color-scheme:dark; --bg:#111111; --card:#1e1e1f; --text:#f1efea; --muted:#8b8882; --line:#2f2f30;
     --ink:#d9d6cf; --on-ink:#1c1c1c;
     --accent:#b48cf0; --accent-soft:#3a2d52; --red:#f25a4b;
     --expense:#d0677c; --income:#63c394; --danger:#f25a4b; --hb:#b48cf0;
     --c4:#77746e; --c5:#6f5a96; --c6:#bdb9b0; --c7:#a8554d; --c8:#4a4844; }
-}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}
@@ -339,7 +347,7 @@ function migrate(s){   // 旧数据补上新设置项，旧的表情图标换成
 }
 function fresh(){
   return {version:1,
-    settings:{allowance:50000,weekStart:6,holiday:false,holidayCap:0,hbLimit:100000,famLimit:60000,lastAutoWeek:null},
+    settings:{allowance:50000,weekStart:6,holiday:false,holidayCap:0,hbLimit:100000,famLimit:60000,lastAutoWeek:null,theme:'auto'},
     profile:{name:'EElise',avatar:''},            // avatar 为空时用自带的 avatar.jpg
     cats:JSON.parse(JSON.stringify(DEFAULT_CATS)), tx:[]};
 }
@@ -664,6 +672,7 @@ function renderMe(){
       <button class="set" data-a="setAllowance"><span class="grow">每周生活费</span><span class="v">${fmt(st.allowance)} ›</span></button>
       <button class="set" data-a="setLimit"><span class="grow">花呗总额度</span><span class="v">${fmt(st.hbLimit)} ›</span></button>
       <button class="set" data-a="setFam"><span class="grow">亲情卡每月额度</span><span class="v">${fmt(st.famLimit)} ›</span></button>
+      <button class="set" data-a="setTheme"><span class="grow">外观</span><span class="v">${{auto:'跟随系统',light:'浅色',dark:'深色'}[st.theme]||'跟随系统'} ›</span></button>
       <button class="set" data-a="cats"><span class="grow">分类管理</span><span class="v">›</span></button>
     </div>
     <div class="card" style="padding:2px 14px">
@@ -858,6 +867,8 @@ const ACT={
   setLimit(){ settingForm('花呗总额度','hbLimit','',false); },
   rename(){ form({title:'改名字',fields:[{k:'name',label:'名字',type:'text',value:S.profile.name}],
     ok:v=>{ const n=v.name.trim().slice(0,20); if(!n) return '名字不能为空'; S.profile.name=n; save(); }}); },
+  setTheme(){ form({title:'外观',fields:[{k:'t',label:'颜色模式',type:'select',value:S.settings.theme||'auto',options:[['auto','跟随系统'],['light','浅色'],['dark','深色']]}],
+    ok:v=>{ S.settings.theme=v.t; save(); applyTheme(v.t); }}); },
   setFam(){ settingForm('亲情卡每月额度','famLimit','填 0 表示没有亲情卡',true); },
   cats(){ openCats(); },
   catEdit(d){ catForm(+d.i); }, catAdd(){ catForm(-1); },
@@ -890,6 +901,8 @@ $('#tabs').innerHTML=`<div class="pill">${CATNAV}${[['list','list','明细'],['s
   .map(([t,i,n])=>`<button data-a="tab" data-t="${t}">${ico(i)}<span>${n}</span></button>`).join('')}</div>
   <button class="plus on" data-a="tab" data-t="add" aria-label="记账">${ico('plus')}</button>`;
 ensureWeeks();
+applyTheme(S.settings.theme);
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme(S.settings.theme));   // “跟随系统”时，手机切换深浅色会立刻跟着变
 render();
 if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
