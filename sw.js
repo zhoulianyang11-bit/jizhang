@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存秒开，同时在后台悄悄更新到最新版本
-const CACHE = 'jizhang-cache-v5';
+const CACHE = 'jizhang-cache-v6';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png', 'avatar.jpg'];
 
 self.addEventListener('install', e => {
