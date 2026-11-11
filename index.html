@@ -413,9 +413,12 @@ function calc(){
     else if(t.type==='withdraw') wd+=t.amount;
     else if(t.type==='deposit') dep+=t.amount;
   }
-  let over=0; for(const k in weeks) over+=Math.max(0,weeks[k].spend-weeks[k].budget);
+  /* 超支的部分从零花钱扣；已经过完的那些周，没花完的生活费自动并进零花钱（本周的要等这周过完才算） */
+  const cur=weekKey(today());
+  let over=0,left=0;
+  for(const k in weeks){ const d=weeks[k].spend-weeks[k].budget; if(d>0) over+=d; else if(k<cur) left-=d; }
   const hbDue=Math.max(0,due-repaid);
-  return {week:W(weekKey(today())), pocket:extra+wd-dep-over, piggy:saved+dep-wd,
+  return {week:W(cur), pocket:extra+wd-dep-over+left, piggy:saved+dep-wd,
           hbDue, hbPre:pre, hbLeft:S.settings.hbLimit-hbDue-pre};
 }
 /* 亲情卡：某个月（'2026-11'）还剩多少额度。每月 1 号自然恢复，不累计 */
